@@ -1,0 +1,58 @@
+# =============================================================================
+# Whitelist .gitignore for the Tomo Digital take-home.
+#
+# Strategy: ignore everything by default, then re-allow only the files this
+# exercise actually owns:
+#   - wp-content/plugins/agency-client-plugin/  (the plugin we work on)
+#   - docs/                                     (our answers)
+#   - tools/, bin/                              (helpers shipped with the repo)
+#   - docker-compose.yml, README.md, .gitignore
+#
+# WordPress core, themes, other plugins, wp-config.php, and the SQLite database
+# are NOT tracked. Local environment values (e.g. ACP_AUTHORITY_API) live in
+# wp-config.php and are documented in docs/SETUP.md so a teammate can reproduce.
+# =============================================================================
+
+# Ignore everything by default.
+*
+
+# --- Repo metadata ----------------------------------------------------------
+!.gitignore
+!.gitattributes
+!README.md
+!docker-compose.yml
+
+# --- Our docs ---------------------------------------------------------------
+!docs/
+!docs/**
+
+# --- Mock API + seed helpers shipped with the exercise ----------------------
+!tools/
+!tools/**
+!bin/
+!bin/**
+
+# --- Path to the plugin we own ----------------------------------------------
+# Re-allow each path segment, then ignore siblings inside each segment so we
+# don't accidentally pull in WP core / akismet / themes.
+!wp-content/
+wp-content/*
+!wp-content/plugins/
+wp-content/plugins/*
+!wp-content/plugins/agency-client-plugin/
+!wp-content/plugins/agency-client-plugin/**
+
+# --- Junk that should never be committed even inside whitelisted folders ----
+.DS_Store
+Thumbs.db
+*.log
+*.swp
+*~
+*.bak
+.env
+.env.*
+!.env.example
+.idea/
+.vscode/
+node_modules/
+vendor/

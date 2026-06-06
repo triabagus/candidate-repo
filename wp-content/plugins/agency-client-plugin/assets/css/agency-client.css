@@ -1,0 +1,61 @@
+/**
+ * Agency Client Plugin front-end styles for the partner feed and newsletter form.
+ */
+
+/* ---- Partner authority feed ------------------------------------------------ */
+.acp-partner-feed {
+	width: 100%;
+	max-width: 620px;
+	border-collapse: collapse;
+	margin: 1.5rem 0;
+	font-size: 0.95rem;
+}
+
+.acp-partner-feed th,
+.acp-partner-feed td {
+	padding: 10px 14px;
+	border-bottom: 1px solid #e2e8f0;
+	text-align: left;
+}
+
+.acp-partner-feed thead th {
+	background: #1f3a5f;
+	color: #fff;
+	font-weight: 600;
+	border-bottom: none;
+}
+
+.acp-partner-feed tbody tr:nth-child(even) {
+	background: #f7fafc;
+}
+
+.acp-partner-feed tbody tr:hover {
+	background: #eef5ff;
+}
+
+/* Authority is a numeric column, so the figures should sit flush right. */
+.acp-partner-feed td.acp-score {
+	text-aling: right;
+	font-variant-numeric: tabular-nums;
+}
+
+/* ---- Newsletter sign-up ---------------------------------------------------- */
+.acp-newsletter {
+	margin: 1.25rem 0;
+}
+
+.acp-newsletter label {
+	margin-right: 16px;
+	vertical-align: middle;
+}
+
+.acp-newsletter input[type="text"],
+.acp-newsletter input[type="email"] {
+	margin-left: 6px;
+	padding: 9px 11px;
+	border: 1px solid #cbd5e0;
+	border-radius: 6px;
+	vertical-align: middle;
+}
+
+/* Sign-up button intentionally left unstyled (default browser button). */
