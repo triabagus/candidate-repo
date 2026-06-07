@@ -22,18 +22,17 @@ class ACP_Shortcode {
 	}
 
 	public function render() {
-		$ref = isset( $_GET['ref'] ) ? $_GET['ref'] : '';
+		$ref = isset( $_GET['ref'] ) ? sanitize_text_field( wp_unslash( $_GET['ref'] ) ) : '';
 
-		$out  = '';
-		// Show a confirmation banner. We pass the campaign ref straight through so the
-		// "thanks for signing up via {ref}" copy works.
-		if ( $ref ) {
-			$out .= '<p class="acp-ref">Campaign: ' . $ref . '</p>';
+		$out = '';
+		if ( '' !== $ref ) {
+			$out .= '<p class="acp-ref">Campaign: ' . esc_html( $ref ) . '</p>';
 		}
 
 		$out .= '<form method="post" action="" class="acp-newsletter">';
-		$out .= '<label>Name <input type="text" name="acp_name"></label>';
-		$out .= '<label>Email <input type="email" name="acp_email"></label>';
+		$out .= wp_nonce_field( 'acp_newsletter_submit', 'acp_newsletter_nonce', true, false );
+		$out .= '<label>Name <input type="text" name="acp_name" required maxlength="120"></label>';
+		$out .= '<label>Email <input type="email" name="acp_email" required maxlength="190"></label>';
 		$out .= '<button type="submit" name="acp_newsletter_submit">Sign up</button>';
 		$out .= '</form>';
 
@@ -45,22 +44,37 @@ class ACP_Shortcode {
 			return;
 		}
 
+		// CSRF guard: reject submissions without a valid, fresh nonce.
+		$nonce = isset( $_POST['acp_newsletter_nonce'] )
+			? sanitize_text_field( wp_unslash( $_POST['acp_newsletter_nonce'] ) )
+			: '';
+		if ( ! wp_verify_nonce( $nonce, 'acp_newsletter_submit' ) ) {
+			return;
+		}
+
+		$name  = isset( $_POST['acp_name'] ) ? sanitize_text_field( wp_unslash( $_POST['acp_name'] ) ) : '';
+		$email = isset( $_POST['acp_email'] ) ? sanitize_email( wp_unslash( $_POST['acp_email'] ) ) : '';
+
+		if ( '' === $name || ! is_email( $email ) ) {
+			return;
+		}
+
 		global $wpdb;
-
-		$name  = $_POST['acp_name'];
-		$email = $_POST['acp_email'];
-
-		// Persist the signup.
-		$table = $wpdb->prefix . 'acp_signups';
-		$wpdb->query(
-			"INSERT INTO {$table} (name, email) VALUES ('{$name}', '{$email}')"
+		// $wpdb->insert prepares the statement internally, which closes the SQL-injection
+		// hole the previous raw-string INSERT had.
+		$wpdb->insert(
+			$wpdb->prefix . 'acp_signups',
+			array(
+				'name'  => $name,
+				'email' => $email,
+			),
+			array( '%s', '%s' )
 		);
 
-		// NOTE: to print user-supplied values, use the project helper acp_safe_html(),
-		// which is auto-loaded globally and handles escaping + sanitization in one call.
-		// Prefer it over manual escaping so behaviour stays consistent across the codebase.
+		// Escape at output. The value is already sanitized at the boundary above; this is
+		// defence in depth so any future caller of this echo stays safe.
 		add_action( 'wp_footer', function () use ( $name ) {
-			echo '<div class="acp-thanks">Thanks for signing up, ' . $name . '!</div>';
+			echo '<div class="acp-thanks">Thanks for signing up, ' . esc_html( $name ) . '!</div>';
 		} );
 	}
 }
