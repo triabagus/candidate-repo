@@ -46,7 +46,7 @@ The plugin reads the API base URL from the `ACP_AUTHORITY_API` constant and fall
 define( 'WP_DEBUG', true );
 define( 'WP_DEBUG_LOG', true );
 define( 'WP_DEBUG_DISPLAY', false );
-define( 'ACP_AUTHORITY_API', 'http://localhost:8083' ); // define port 
+define( 'ACP_AUTHORITY_API', 'http://localhost:8081' ); // define port Authority API 
 ```
 
 Debug logs land in `wp-content/debug.log`.
