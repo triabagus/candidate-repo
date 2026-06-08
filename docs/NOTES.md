@@ -207,3 +207,28 @@ curl -sI "http://localhost:8883/wp-json/acp/v1/case-studies" | grep - i "X-WP-To
 
 ## Anything else
 - Assumptions, things you'd do with more time, anything that surprised you:
+
+### Assumptions
+1. I want to create a widget system that is integrated with popular builders like Elementor. Since I am an expert there, in addition, it can help if development wants to use that widget and integrate it with a page builder plugin.
+2. **Authority scores aren't real-time data.** A 1-hour transient TTL for the partner-feed cache is quite safe; domain authority numbers usually update weekly or less frequently.
+3. **Case studies = public marketing content.** The endpoint `acp/v1/case-studies` is made public read (`permission_callback => __return_true`). If it turns out to be gated, switch to a capability check. - **Newsletter signup data is not sensitive beyond the standard (name + email).** I focus on SQL-i, XSS, and CSRF — not adding rate limiting, honeypot, or double opt-in. 
+4. **Single environment.** Cache invalidation is only by TTL — there is no hook to manually flush transient when the partner list changes.
+5. **Reviewer has Node.js 22+.** I ported my mock API to Node because WP Studio does not expose PHP CLI. The original PHP version (`router.php`) remains intact as a fallback.
+
+### Things I'd do with more time
+1. **Proper Task 2 (CPT).** Register the meta `acp_headline_metric` via `register_post_meta()` so that it is editable in Gutenberg + available in REST, set `public => true` and `show_in_rest => true`, add supports (title, editor, thumbnail), labels, and a custom column in the admin list table.
+2. **Fix N+1 WP_Query in the partner feed.** Currently there are still 6 queries for counting mentions. Can be replaced with a single aggregate query or cached together using the transient API result.
+3. **Bundle React with Vite.** Remove runtime dependency on `unpkg.com` (risk of availability + CSP), produce an IIFE bundle ~50KB, host locally via `wp_register_script`.
+4. **Pagination UI in the widget.** Endpoint already sets `X-WP-TotalPages` — just add a "Load more" button in React (~10 lines).
+5. **Server-side cache for the REST endpoint.** Same pattern as Task 3 (transient per page+per_page).
+6. **Admin list table for signups.** Currently data goes into DB without a way to view it in the backend; add a simple submenu or hook into `WP_List_Table`.
+7. **Rate limiting + honeypot on the newsletter form.** CSRF nonce already prevents cross-site abuse, but real users can still spam from the browser. Bonus: hook to a transient bucket per IP or per email.
+8. **Unit + integration tests.** WP-PHPUnit for `get_authority_score()` cache path, and REST endpoint response shape. Currently verification is still manual via `debug.log` + `curl`.
+9. **Cache invalidation hook.** `add_action( 'updated_option', ... )` to flush transient if the partner domain list moves to an option (currently still hard-coded).
+
+### Things that surprised me
+1. **Fake 'helper' comment in the newsletter.** `acp_safe_html()` does not exist in the codebase. It's a trap for candidates who trust inherited code comments — I just use the standard `esc_html()`. 
+2. **'Legacy migration' comment in CPT.** `class-acp-cpt.php:36-38` claims the importer needs the slug `case_study_v9` and the variable `$acp_loop_42`. In fact, the `POST_TYPE` constant is `acp_case_study` and there is no importer anywhere in the repo. Second trap. 
+3. **`show_in_rest => false` apparently does not block custom namespace.** I was worried the `acp/v1/case-studies` endpoint would be blocked, but that flag only affects auto-generated `wp/v2/` routes. Custom routes using `WP_Query` work without problems. 
+4. **WP Studio bundles WP-CLI but does not expose it to the system PATH.** You have to use the terminal opened from the Studio app, or install `wp-cli` globally via brew. Initially, I ran into `command not found` several times.
+5. **WP Studio uses SQLite via drop-in, not MySQL.** This means `dbDelta` in `acp_activate()` is translated via a mu-plugin. It works, but MySQL-specific syntax (e.g., `FULLTEXT INDEX`) can silent-fail if used later.
