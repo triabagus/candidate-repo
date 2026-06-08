@@ -59,3 +59,44 @@
 }
 
 /* Sign-up button intentionally left unstyled (default browser button). */
+
+/* ---- Case Studies headless widget ------------------------------------------ */
+.acp-csw-list {
+	list-style: none;
+	padding: 0;
+	margin: 1.25rem 0;
+	max-width: 620px;
+}
+
+.acp-csw-item {
+	padding: 12px 14px;
+	border-bottom: 1px solid #e2e8f0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	align-items: baseline;
+	justify-content: space-between;
+}
+
+.acp-csw-title {
+	font-weight: 600;
+	color: #1f3a5f;
+	text-decoration: none;
+}
+
+.acp-csw-metric {
+	font-variant-numeric: tabular-nums;
+	color: #2f855a;
+	font-size: 0.9rem;
+}
+
+.acp-csw-loading,
+.acp-csw-empty,
+.acp-csw-error {
+	color: #4a5568;
+	font-style: italic;
+}
+
+.acp-csw-error {
+	color: #c53030;
+}

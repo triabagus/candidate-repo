@@ -152,7 +152,58 @@ All fixes are WordPress-idiomatic — no custom escapers, no string juggling.
 | Submit with name = `'); DROP TABLE wp_acp_signups;--` and valid nonce/email | Row inserted with the literal text in the `name` column. Table is intact. |
 
 ## Task 6: Headless widget (bonus, optional)
-- How to build/run it, and any trade-offs:
+
+### What I added
+A small REST-consumer slice - backend, frontend and the shortcode that glues them.
+
+| File | What it does |
+|---|---|
+| `includes/class-acp-rest.php` | Implements `GET /wp-json/acp/v1/case-studies`. Resgisters `[acp_case_stidues_widget]`. |
+| `assets/widget/index.js` | New. The React widget (≈80 lines, no build step). |
+| `assets/css/agency-client.css` | Appended `.acp-csw-*` styles for the widget. |
+
+** The REST endpoint.** `WP_Query` over the `acp_case_study` CPT (Task 2), returning a narrow json shape:
+
+```json
+{ "id": 42, "title": "Local HVAC co., organic turnaround", "permalink": "https://…/case-studies/local-hvac-co/", "headline_metric": "+212% organic traffic in 6 months" }  
+``
+
+It supports `?per_page=N` (1-50, default 10) and `?page=N`, with `X-WP-Total` / `X-WP-TotalPages` response headers - the same convention the core `wp/v2` controllers use, so any pagination UI we add later behaves predictably. Permission callback is `__return_true` (public marketing conten), inputs are sanitized to `absint`, output strings go through `wp_strip_all_tags` and casts to known types.
+
+**The React widget.** UMD globals from `unpkg`: `react@18`, `react-dom@18`, and `htm@3.1.1.`.
+
+Three states are handled explicitly so we never leave the user staring at a blank `<div>`: loading, error, empty. The list degrades gracefully when `permalink` is empty (renders the title as plain text instead of a broken link).
+
+**The shortcode** `[acp_case_studies_widget]` (optional `per_page="5"`). It outputs the mount point and `wp_enqueue_script`s React/htm/index.js *only on pages that use it*, so the extra ~50 KB doesn't leak onto every page on the site. The REST URL is injected via `wp_add_inline_script` ad `window.ACP_CASE_STUDIES` = {restUrl, perPage}`.
+
+### How to build
+**Nothing to build** That's the deliberate part of the trade-off. React, ReactDOM, and `htm` are loaded as UMD scripts at runtime. The whole "toolchain" is '<script src>'. No `npm install`, no `vite build`, no committed 'dist/'.
+
+### How to run
+1. Make sure the plugin is active and atleast one published caase study exists. Create one in **WP Admin → Case Studies → Add New** (the new admin menu from Task 2). Fill in "Headline metric" in the side meta box.
+
+2. Create or edit any page and add the shortcode:
+```
+[acp_case_studies_widget]
+```
+...or `[acp_case_studies_widget per_page="5"]`.
+
+3. Visit the page. You should see "Loading case studies..." for a beat, then the list.
+
+4. Smoke-test the endpoint directly:
+```bash
+curl -s "http://localhost:8883/wp-json/acp/v1/case-studies?per_page=5" | head -c 500
+
+curl -sI "http://localhost:8883/wp-json/acp/v1/case-studies" | grep - i "X-WP-Total"
+```
+
+### Trade-offs (deliberate)
+- **CDN React vs bundled.** Zero build step, fast to demo, and lighter on plugin maintenance. Cost a runtime dependency on `unpkg.com` (availability risk + CSP implication) and an unminified `htm` shipped to the browser. For a production rollout I'd swap to a Vite-built IIFE bundle and `wp_register_script` from `assets/widget/dist/`.
+- **`html` instead of JSX.** Avoids needing Babel/SWC in the toolchain. Tagged-template syntax is slightly less ergonomic than JSX but the diff to JSX is small if we add a build.
+- **Server-side pagination, no UI for it.** The endpoint paginates cleanly (`X-WP-TotalPages` is set), but the widget renders one page only. A "Load more" button is a ten-line addition; I kept it out to keep the demo tight.
+- **`permission_callback => __return_true`.** Case studies are marketing content. If they ever become gated, swap to a capability check.
+- **No client-side caching.** Every page hit makes one REST request. Chep enough today; if the list grows, cache the response with a transient on the server (same pattern as Task 3). 
+- **No `headline_metric` schema in REST `args`.** The endpoint returns the field but doesn't document it via the JSON schema block. For a public-facing API I'd add `schema` and a `register_rest_field` so it shows up in `/wp-json/acp/v1`'s discovery output. For an internal widget consumer, the inline contract in `index.js` is enough.
 
 ## Anything else
 - Assumptions, things you'd do with more time, anything that surprised you:
